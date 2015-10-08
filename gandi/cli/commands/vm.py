@@ -20,8 +20,10 @@ from gandi.cli.core.params import (
 @click.option('--id', help='Display ids.', is_flag=True)
 @click.option('--limit', help='Limit number of results.', default=100,
               show_default=True)
+@click.option('--fmt', help='Format string for each VMs, for ex: "%(id)s/%(state)s\\n"', default=None,
+              show_default=True)
 @pass_gandi
-def list(gandi, state, id, limit, datacenter):
+def list(gandi, state, id, limit, datacenter, fmt):
     """List virtual machines."""
     options = {
         'items_per_page': limit,
@@ -36,10 +38,26 @@ def list(gandi, state, id, limit, datacenter):
         output_keys.append('id')
 
     result = gandi.iaas.list(options)
-    for num, vm in enumerate(result):
-        if num:
-            gandi.separator_line()
-        output_vm(gandi, vm, [], output_keys)
+    if fmt:
+        ## Unquoting '\' to allow to interpret "\n" provided on the command lie
+        fmt = fmt.decode('string_escape')
+        try:
+            click.echo("".join(fmt % dct for dct in result), nl=False)
+        except KeyError as e:
+            click.echo("Key error while using your custom format string: %s"
+                             % (str(e), ), err=True)
+            if len(result):
+                click.echo("These are the available keys:\n- %s"
+                           % "\n- ".join(sorted(result[0].keys())), err=True)
+            return
+        except ValueError as e:
+            click.echo("Error using your format: %s" % (str(e), ), err=False)
+            return
+    else:
+        for num, vm in enumerate(result):
+            if num:
+                gandi.separator_line()
+            output_vm(gandi, vm, [], output_keys)
 
     return result
 
