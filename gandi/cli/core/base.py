@@ -66,7 +66,7 @@ class GandiModule(GandiConfig):
         empty_key = kwargs.pop('empty_key', False)
         try:
             api = cls.get_api_connector()
-            apikey = cls.get('api.key')
+            apikey = os.environ.get('GANDI_APIKEY', cls.get('api.key'))
             if not apikey and not empty_key:
                 cls.echo("No apikey found, please use 'gandi setup' "
                          "command")
